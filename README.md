@@ -30,7 +30,7 @@ Generate meaningful Git commit messages using AI for your repository changes.
 
 ## Support
 
-If you encounter any issues or have suggestions, please visit the [GitHub repository](YOUR_GITHUB_REPO_URL) to file an issue.
+If you encounter any issues or have suggestions, please visit the [GitHub repository](https://github.com/chihkang/gitcommiter) to file an issue.
 
 ## Author
 
