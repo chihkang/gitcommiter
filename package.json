@@ -12,10 +12,18 @@
   "license": "MIT",
   "commands": [
     {
-      "name": "commit-summary",
-      "title": "Get Commit Summary And Descriptions",
-      "description": "use AI to generate commit summary and descriptions",
-      "mode": "view"
+      "name": "generate-commit",
+      "title": "Generate Commit Message",
+      "description": "Generate AI-powered commit messages from your repository changes",
+      "mode": "view",
+      "subtitle": "AI Git Assistant",
+      "keywords": [
+        "git",
+        "commit",
+        "message",
+        "ai",
+        "generator"
+      ]
     }
   ],
   "dependencies": {
