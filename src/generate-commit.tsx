@@ -99,13 +99,16 @@ Generate:
       markdown={
         data
           ? (() => {
-              const lines = data.split("\n").map((line) => line.trim()).filter(Boolean);
+              const lines = data
+                .split("\n")
+                .map((line) => line.trim())
+                .filter(Boolean);
               let summary = "";
               let messages: string[] = [];
               let additionalInfo = "";
 
               const hasExplicitMarkers = lines.some(
-                (line) => line.startsWith("Commit Summary:") || line.startsWith("Commit Message:")
+                (line) => line.startsWith("Commit Summary:") || line.startsWith("Commit Message:"),
               );
 
               if (hasExplicitMarkers) {
@@ -121,8 +124,13 @@ Generate:
                     .filter((line) => line.startsWith("- ") || line.startsWith("• ") || line.startsWith("* "));
                 }
               } else {
-                summary = lines.find((line) => line && !line.startsWith("-") && !line.startsWith("•") && !line.startsWith("*")) || "";
-                messages = lines.filter((line) => line.startsWith("- ") || line.startsWith("• ") || line.startsWith("* "));
+                summary =
+                  lines.find(
+                    (line) => line && !line.startsWith("-") && !line.startsWith("•") && !line.startsWith("*"),
+                  ) || "";
+                messages = lines.filter(
+                  (line) => line.startsWith("- ") || line.startsWith("• ") || line.startsWith("* "),
+                );
               }
 
               const lastMessageIndex = messages.length > 0 ? lines.lastIndexOf(messages[messages.length - 1]) : -1;
