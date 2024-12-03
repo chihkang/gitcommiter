@@ -61,17 +61,17 @@ function GenerateCommitMessage({ gitPath }: { gitPath: string }) {
 You are a Git commit message generator. Given the git diff content below, generate a concise and descriptive commit message following these rules:
 
 1. Summary line (50 chars or less):
--               Start with a capital letter
--               Use imperative mood ("Add", "Fix", "Update", not "Added", "Fixed", "Updated")
--               No period at the end
--               Be specific and meaningful
+-                Start with a capital letter
+-                Use imperative mood ("Add", "Fix", "Update", not "Added", "Fixed", "Updated")
+-                No period at the end
+-                Be specific and meaningful
 
 2. Detailed description (72 chars per line):
--               Leave one blank line after summary
--               Explain what and why vs. how
--               List major changes with bullet points
--               Include relevant issue/ticket numbers
--               Explain breaking changes if any
+-                Leave one blank line after summary
+-                Explain what and why vs. how
+-                List major changes with bullet points
+-                Include relevant issue/ticket numbers
+-                Explain breaking changes if any
 
 Git diff content:
 ${gitDiff}
@@ -99,24 +99,21 @@ Generate:
       markdown={
         data
           ? (() => {
-              const lines = data.split("\n").map((line) => line.trim());
+              const lines = data.split("\n").map((line) => line.trim()).filter(Boolean);
               let summary = "";
-              let messages = [];
+              let messages: string[] = [];
               let additionalInfo = "";
 
-              // Determine if the response includes explicit section markers
               const hasExplicitMarkers = lines.some(
-                (line) => line.startsWith("Commit Summary:") || line.startsWith("Commit Message:"),
+                (line) => line.startsWith("Commit Summary:") || line.startsWith("Commit Message:")
               );
 
               if (hasExplicitMarkers) {
-                // Extract summary from the line that starts with "Commit Summary:"
                 const summaryIndex = lines.findIndex((line) => line.startsWith("Commit Summary:"));
                 if (summaryIndex !== -1) {
                   summary = lines[summaryIndex].replace("Commit Summary:", "").trim();
                 }
 
-                // Extract messages from lines starting with bullet points after "Commit Message:"
                 const messageStartIndex = lines.findIndex((line) => line.startsWith("Commit Message:"));
                 if (messageStartIndex !== -1) {
                   messages = lines
@@ -124,20 +121,11 @@ Generate:
                     .filter((line) => line.startsWith("- ") || line.startsWith("• ") || line.startsWith("* "));
                 }
               } else {
-                // Assume the first non-empty line is the summary
-                summary =
-                  lines.find(
-                    (line) => line && !line.startsWith("-") && !line.startsWith("•") && !line.startsWith("*"),
-                  ) || "";
-
-                // Extract messages from lines starting with bullet points
-                messages = lines.filter(
-                  (line) => line.startsWith("- ") || line.startsWith("• ") || line.startsWith("* "),
-                );
+                summary = lines.find((line) => line && !line.startsWith("-") && !line.startsWith("•") && !line.startsWith("*")) || "";
+                messages = lines.filter((line) => line.startsWith("- ") || line.startsWith("• ") || line.startsWith("* "));
               }
 
-              // Extract any additional information after the last bullet point
-              const lastMessageIndex = lines.lastIndexOf(messages[messages.length - 1]);
+              const lastMessageIndex = messages.length > 0 ? lines.lastIndexOf(messages[messages.length - 1]) : -1;
               if (lastMessageIndex !== -1 && lastMessageIndex + 1 < lines.length) {
                 additionalInfo = lines.slice(lastMessageIndex + 1).join(" ");
               }
