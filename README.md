@@ -8,8 +8,6 @@ GitCommiter is an AI-powered tool designed to generate meaningful Git commit mes
 - 📝 **Commit Summaries and Detailed Descriptions**: Provides both high-level summaries and detailed commit messages.
 - 🔍 **Context-Aware Analysis**: Analyzes repository changes to tailor commit messages to your specific modifications.
 - 💡 **Consistent and Professional Commit History**: Helps maintain a clean and standardized commit history.
-- 🌍 **Multi-language Support**: Available in English and Chinese.
-- 📋 **Multiple Commit Message Styles**: Choose from Conventional, Detailed, or Simple styles.
 
 ## Prerequisites
 
