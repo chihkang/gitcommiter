@@ -121,24 +121,6 @@
         }
       ],
       "default": "conventional"
-    },
-    {
-      "name": "language",
-      "type": "dropdown",
-      "required": false,
-      "title": "Commit Message Language",
-      "description": "Choose the language for generated commit messages",
-      "data": [
-        {
-          "title": "English",
-          "value": "en"
-        },
-        {
-          "title": "Chinese",
-          "value": "zh"
-        }
-      ],
-      "default": "en"
     }
   ]
 }

@@ -87,7 +87,7 @@ Generate:
 `;
 
   const { data, isLoading } = useAI(prompt, {
-    creativity: 0.3,
+    creativity: 0,
     model: AI.Model.Anthropic_Claude_Sonnet,
     execute: !!gitDiff,
   });
@@ -104,11 +104,19 @@ Generate:
       markdown={
         data
           ? (() => {
-              const summaryMatch = data.match(/Commit Summary:\s*([\s\S]*?)(?=\n\n|Commit Message:)/);
-              const summary = summaryMatch ? summaryMatch[1].trim() : '';
+              // Attempt to extract the summary and message
+              let summary = "";
+              let messages = "";
 
-              const messageMatch = data.match(/Commit Message:\s*([\s\S]*)/);
-              const messages = messageMatch ? messageMatch[1].trim() : '';
+              const summaryMatch = data.match(/^(.*?)(?=\n\n|$)/);
+              if (summaryMatch) {
+                summary = summaryMatch[1].trim();
+              }
+
+              const messageMatch = data.match(/(?:- |\* ).+/g);
+              if (messageMatch) {
+                messages = messageMatch.join("\n");
+              }
 
               return `## Commit Summary
 ${summary}
