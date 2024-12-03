@@ -15,7 +15,7 @@ export default function RemovePathsCommand() {
   }, []);
 
   async function handleRemovePath(pathToRemove: string) {
-    const updatedPaths = savedPaths.filter(path => path !== pathToRemove);
+    const updatedPaths = savedPaths.filter((path) => path !== pathToRemove);
     setSavedPaths(updatedPaths);
     await LocalStorage.setItem("gitPaths", JSON.stringify(updatedPaths));
     showToast(Toast.Style.Success, "Path Removed");
@@ -27,10 +27,7 @@ export default function RemovePathsCommand() {
   }
 
   return (
-    <List
-      searchBarPlaceholder="Search saved paths"
-      isShowingDetail
-    >
+    <List searchBarPlaceholder="Search saved paths" isShowingDetail>
       {savedPaths.map((path) => (
         <List.Item
           key={path}

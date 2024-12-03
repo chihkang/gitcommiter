@@ -35,12 +35,7 @@ export default function Command() {
         </ActionPanel>
       }
     >
-      <Form.Dropdown
-        id="gitPath"
-        title="Git Repository Path"
-        value={gitPath}
-        onChange={setGitPath}
-      >
+      <Form.Dropdown id="gitPath" title="Git Repository Path" value={gitPath} onChange={setGitPath}>
         {savedPaths.map((path) => (
           <Form.Dropdown.Item key={path} value={path} title={formatPath(path)} />
         ))}
@@ -53,7 +48,7 @@ function GenerateCommitMessage({ gitPath }: { gitPath: string }) {
   const [gitDiff, setGitDiff] = useState<string>("");
 
   useEffect(() => {
-    exec(`git -C "${gitPath}" diff`, (error, stdout, stderr) => {
+    exec(`git -C "${gitPath}" diff`, (error, stdout) => {
       if (error) {
         console.error(`exec error: ${error}`);
         return;
@@ -66,17 +61,17 @@ function GenerateCommitMessage({ gitPath }: { gitPath: string }) {
 You are a Git commit message generator. Given the git diff content below, generate a concise and descriptive commit message following these rules:
 
 1. Summary line (50 chars or less):
--       Start with a capital letter
--       Use imperative mood ("Add", "Fix", "Update", not "Added", "Fixed", "Updated")
--       No period at the end
--       Be specific and meaningful
+-        Start with a capital letter
+-        Use imperative mood ("Add", "Fix", "Update", not "Added", "Fixed", "Updated")
+-        No period at the end
+-        Be specific and meaningful
 
 2. Detailed description (72 chars per line):
--       Leave one blank line after summary
--       Explain what and why vs. how
--       List major changes with bullet points
--       Include relevant issue/ticket numbers
--       Explain breaking changes if any
+-        Leave one blank line after summary
+-        Explain what and why vs. how
+-        List major changes with bullet points
+-        Include relevant issue/ticket numbers
+-        Explain breaking changes if any
 
 Git diff content:
 ${gitDiff}
@@ -104,18 +99,20 @@ Generate:
       markdown={
         data
           ? (() => {
-              // Attempt to extract the summary and message
+              // Improved extraction logic for summary and message
+              const lines = data.split("\n").map((line) => line.trim());
               let summary = "";
               let messages = "";
 
-              const summaryMatch = data.match(/^(.*?)(?=\n\n|$)/);
-              if (summaryMatch) {
-                summary = summaryMatch[1].trim();
+              // Extract summary from the first line
+              if (lines.length > 0) {
+                summary = lines[0];
               }
 
-              const messageMatch = data.match(/(?:- |\* ).+/g);
-              if (messageMatch) {
-                messages = messageMatch.join("\n");
+              // Extract messages from lines starting with bullet points
+              const messageLines = lines.filter((line) => line.startsWith("- ") || line.startsWith("• "));
+              if (messageLines.length > 0) {
+                messages = messageLines.join("\n");
               }
 
               return `## Commit Summary
