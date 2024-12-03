@@ -1,12 +1,4 @@
-// import { Detail } from "@raycast/api";
-// import { useAI } from "@raycast/utils";
-
-// export default function Command() {
-//   const { data, isLoading } = useAI("Suggest 5 jazz songs");
-
-//   return <Detail isLoading={isLoading} markdown={data} />;
-// }
-import { ActionPanel, Detail, Form, Action, useNavigation, AI } from "@raycast/api";
+import { ActionPanel, Detail, Form, Action, useNavigation, LocalStorage, AI } from "@raycast/api";
 import { useAI } from "@raycast/utils";
 import { useEffect, useState } from "react";
 import { exec } from "child_process";
@@ -14,9 +6,30 @@ import { exec } from "child_process";
 export default function Command() {
   const { push } = useNavigation();
   const [gitPath, setGitPath] = useState<string>("");
+  const [savedPaths, setSavedPaths] = useState<string[]>([]);
 
-  function handleSubmit() {
+  useEffect(() => {
+    async function fetchPaths() {
+      const paths = await LocalStorage.getItem<string[]>("gitPaths");
+      if (paths) {
+        setSavedPaths(JSON.parse(paths));
+      }
+    }
+    fetchPaths();
+  }, []);
+
+  async function handleSubmit() {
+    if (!savedPaths.includes(gitPath)) {
+      const updatedPaths = [...savedPaths, gitPath];
+      setSavedPaths(updatedPaths);
+      await LocalStorage.setItem("gitPaths", JSON.stringify(updatedPaths));
+    }
     push(<GenerateCommitMessage gitPath={gitPath} />);
+  }
+
+  function formatPath(path: string) {
+    const parts = path.split("/");
+    return parts.length > 1 ? parts.slice(-2).join("/") : path;
   }
 
   return (
@@ -27,11 +40,20 @@ export default function Command() {
         </ActionPanel>
       }
     >
-      <Form.TextField
+      <Form.Dropdown
         id="gitPath"
         title="Git Repository Path"
-        placeholder="Enter the path to your Git repository"
         value={gitPath}
+        onChange={setGitPath}
+      >
+        {savedPaths.map((path) => (
+          <Form.Dropdown.Item key={path} value={path} title={formatPath(path)} />
+        ))}
+      </Form.Dropdown>
+      <Form.TextField
+        id="newGitPath"
+        title="Add New Path"
+        placeholder="Enter a new Git repository path"
         onChange={setGitPath}
       />
     </Form>
@@ -55,17 +77,17 @@ function GenerateCommitMessage({ gitPath }: { gitPath: string }) {
 You are a Git commit message generator. Given the git diff content below, generate a concise and descriptive commit message following these rules:
 
 1. Summary line (50 chars or less):
--   Start with a capital letter
--   Use imperative mood ("Add", "Fix", "Update", not "Added", "Fixed", "Updated")
--   No period at the end
--   Be specific and meaningful
+-      Start with a capital letter
+-      Use imperative mood ("Add", "Fix", "Update", not "Added", "Fixed", "Updated")
+-      No period at the end
+-      Be specific and meaningful
 
 2. Detailed description (72 chars per line):
--   Leave one blank line after summary
--   Explain what and why vs. how
--   List major changes with bullet points
--   Include relevant issue/ticket numbers
--   Explain breaking changes if any
+-      Leave one blank line after summary
+-      Explain what and why vs. how
+-      List major changes with bullet points
+-      Include relevant issue/ticket numbers
+-      Explain breaking changes if any
 
 Git diff content:
 ${gitDiff}
@@ -77,9 +99,15 @@ Generate:
 
   const { data, isLoading } = useAI(prompt, {
     creativity: 0.3,
-    model: AI.Model.Anthropic_Claude_Sonnet, // Ensure this model is available
+    model: AI.Model.Anthropic_Claude_Sonnet,
     execute: !!gitDiff,
   });
+
+  useEffect(() => {
+    if (data) {
+      console.log("AI Response:", data);
+    }
+  }, [data]);
 
   return (
     <Detail
@@ -87,31 +115,23 @@ Generate:
       markdown={
         data
           ? (() => {
-            // 提取 Commit Summary
-            const summaryMatch = data.match(/Commit Summary:\s*([\s\S]*?)(?=\s*Commit Message:)/);
-            const summary = summaryMatch ? summaryMatch[1].trim() : '';
+            // Extract the first line as the commit summary
+            const summaryMatch = data.split("\n")[0].trim();
 
-            // 提取 Commit Messages
-            const messageMatch = data.match(/Commit Message:\s*([\s\S]*$)/);
-            const messages = messageMatch
-              ? messageMatch[1]
-                .trim()
-                .split('\n')
-                .map(line => line.trim())
-                .filter(line => line.startsWith('-'))
-                .join('\n')
-              : '';
+            // Extract bullet points for the commit message
+            const messageMatch = data
+              .split("\n")
+              .filter(line => line.trim().startsWith("*"))
+              .join("\n");
 
             return `## Commit Summary
-  ${summary}
-  
-  ## Commit Messages
-  ${messages}`;
+${summaryMatch}
+
+## Commit Messages
+${messageMatch}`;
           })()
           : "Loading..."
       }
     />
   );
-
-
 }

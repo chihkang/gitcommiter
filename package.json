@@ -12,6 +12,14 @@
   "license": "MIT",
   "commands": [
     {
+      "name": "settings-command",
+      "title": "Configure Repository Shortcuts",
+      "description": "A command to configure Git repository paths and assign keyboard shortcuts for quick access.",
+      "mode": "view",
+      "subtitle": "Manage your Git repository shortcuts",
+      "keywords": ["git", "repository", "shortcut", "configuration", "settings"]
+    },
+    {
       "name": "generate-commit",
       "title": "Generate Commit Message",
       "description": "Generate AI-powered commit messages from your repository changes",
