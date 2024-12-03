@@ -61,17 +61,17 @@ function GenerateCommitMessage({ gitPath }: { gitPath: string }) {
 You are a Git commit message generator. Given the git diff content below, generate a concise and descriptive commit message following these rules:
 
 1. Summary line (50 chars or less):
--        Start with a capital letter
--        Use imperative mood ("Add", "Fix", "Update", not "Added", "Fixed", "Updated")
--        No period at the end
--        Be specific and meaningful
+-             Start with a capital letter
+-             Use imperative mood ("Add", "Fix", "Update", not "Added", "Fixed", "Updated")
+-             No period at the end
+-             Be specific and meaningful
 
 2. Detailed description (72 chars per line):
--        Leave one blank line after summary
--        Explain what and why vs. how
--        List major changes with bullet points
--        Include relevant issue/ticket numbers
--        Explain breaking changes if any
+-             Leave one blank line after summary
+-             Explain what and why vs. how
+-             List major changes with bullet points
+-             Include relevant issue/ticket numbers
+-             Explain breaking changes if any
 
 Git diff content:
 ${gitDiff}
@@ -99,27 +99,40 @@ Generate:
       markdown={
         data
           ? (() => {
-              // Improved extraction logic for summary and message
               const lines = data.split("\n").map((line) => line.trim());
               let summary = "";
-              let messages = "";
+              let messages = [];
+              let additionalInfo = "";
 
-              // Extract summary from the first line
-              if (lines.length > 0) {
-                summary = lines[0];
+              // Extract summary from the first non-empty line that doesn't start with a bullet point
+              const summaryLine = lines.find(
+                (line) => line && !line.startsWith("-") && !line.startsWith("•") && !line.startsWith("*"),
+              );
+              if (summaryLine) {
+                summary = summaryLine;
               }
 
-              // Extract messages from lines starting with bullet points
-              const messageLines = lines.filter((line) => line.startsWith("- ") || line.startsWith("• "));
+              // Extract messages from lines starting with either bullet point format
+              const messageLines = lines.filter(
+                (line) => line.startsWith("- ") || line.startsWith("• ") || line.startsWith("* "),
+              );
               if (messageLines.length > 0) {
-                messages = messageLines.join("\n");
+                messages = messageLines;
+              }
+
+              // Extract any additional information after the bullet points
+              const lastMessageIndex = lines.lastIndexOf(messageLines[messageLines.length - 1]);
+              if (lastMessageIndex !== -1 && lastMessageIndex + 1 < lines.length) {
+                additionalInfo = lines.slice(lastMessageIndex + 1).join(" ");
               }
 
               return `## Commit Summary
 ${summary}
 
-## Commit Message
-${messages}`;
+## Commit Messages
+${messages.join("\n")}
+
+${additionalInfo ? `## Additional Information\n${additionalInfo}` : ""}`;
             })()
           : "Loading..."
       }
