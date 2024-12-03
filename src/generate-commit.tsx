@@ -18,12 +18,7 @@ export default function Command() {
     fetchPaths();
   }, []);
 
-  async function handleSubmit() {
-    if (!savedPaths.includes(gitPath)) {
-      const updatedPaths = [...savedPaths, gitPath];
-      setSavedPaths(updatedPaths);
-      await LocalStorage.setItem("gitPaths", JSON.stringify(updatedPaths));
-    }
+  function handleSubmit() {
     push(<GenerateCommitMessage gitPath={gitPath} />);
   }
 
@@ -50,12 +45,6 @@ export default function Command() {
           <Form.Dropdown.Item key={path} value={path} title={formatPath(path)} />
         ))}
       </Form.Dropdown>
-      <Form.TextField
-        id="newGitPath"
-        title="Add New Path"
-        placeholder="Enter a new Git repository path"
-        onChange={setGitPath}
-      />
     </Form>
   );
 }
@@ -77,17 +66,17 @@ function GenerateCommitMessage({ gitPath }: { gitPath: string }) {
 You are a Git commit message generator. Given the git diff content below, generate a concise and descriptive commit message following these rules:
 
 1. Summary line (50 chars or less):
--      Start with a capital letter
--      Use imperative mood ("Add", "Fix", "Update", not "Added", "Fixed", "Updated")
--      No period at the end
--      Be specific and meaningful
+-       Start with a capital letter
+-       Use imperative mood ("Add", "Fix", "Update", not "Added", "Fixed", "Updated")
+-       No period at the end
+-       Be specific and meaningful
 
 2. Detailed description (72 chars per line):
--      Leave one blank line after summary
--      Explain what and why vs. how
--      List major changes with bullet points
--      Include relevant issue/ticket numbers
--      Explain breaking changes if any
+-       Leave one blank line after summary
+-       Explain what and why vs. how
+-       List major changes with bullet points
+-       Include relevant issue/ticket numbers
+-       Explain breaking changes if any
 
 Git diff content:
 ${gitDiff}
@@ -115,21 +104,18 @@ Generate:
       markdown={
         data
           ? (() => {
-            // Extract the first line as the commit summary
-            const summaryMatch = data.split("\n")[0].trim();
+              const summaryMatch = data.match(/Commit Summary:\s*([\s\S]*?)(?=\n\n|Commit Message:)/);
+              const summary = summaryMatch ? summaryMatch[1].trim() : '';
 
-            // Extract bullet points for the commit message
-            const messageMatch = data
-              .split("\n")
-              .filter(line => line.trim().startsWith("*"))
-              .join("\n");
+              const messageMatch = data.match(/Commit Message:\s*([\s\S]*)/);
+              const messages = messageMatch ? messageMatch[1].trim() : '';
 
-            return `## Commit Summary
-${summaryMatch}
+              return `## Commit Summary
+${summary}
 
-## Commit Messages
-${messageMatch}`;
-          })()
+## Commit Message
+${messages}`;
+            })()
           : "Loading..."
       }
     />

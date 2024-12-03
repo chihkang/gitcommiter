@@ -12,12 +12,31 @@
   "license": "MIT",
   "commands": [
     {
-      "name": "settings-command",
-      "title": "Configure Repository Shortcuts",
-      "description": "A command to configure Git repository paths and assign keyboard shortcuts for quick access.",
+      "name": "add-repo-command",
+      "title": "Add Repository Path",
+      "description": "Add a new Git repository path.",
       "mode": "view",
-      "subtitle": "Manage your Git repository shortcuts",
-      "keywords": ["git", "repository", "shortcut", "configuration", "settings"]
+      "subtitle": "Add Paths To Repository",
+      "keywords": [
+        "git",
+        "repository",
+        "add",
+        "path",
+        "new"
+      ]
+    },
+    {
+      "name": "remove-paths-command",
+      "title": "Remove Repository Paths",
+      "description": "Remove paths from your repository list",
+      "mode": "view",
+      "subtitle": "Remove Git Paths",
+      "keywords": [
+        "git",
+        "repository",
+        "remove",
+        "path"
+      ]
     },
     {
       "name": "generate-commit",
