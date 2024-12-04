@@ -3,33 +3,42 @@ import { useAI } from "@raycast/utils";
 import { useEffect, useState } from "react";
 import { exec } from "child_process";
 
+// 定義類型以提高代碼可維護性
+interface GenerateCommitMessageProps {
+  gitPath: string;
+}
+
+// 提取常量以便於維護和重用
+const STORAGE_KEY = "gitPaths";
+const DEFAULT_PATHS: string[] = [];
+
 export default function Command() {
   const { push } = useNavigation();
   const [gitPath, setGitPath] = useState<string>("");
-  const [savedPaths, setSavedPaths] = useState<string[]>([]);
+  const [savedPaths, setSavedPaths] = useState<string[]>(DEFAULT_PATHS);
 
   useEffect(() => {
     async function fetchPaths() {
-      const pathsString = (await LocalStorage.getItem<string>("gitPaths")) || "[]";
       try {
+        const pathsString = (await LocalStorage.getItem<string>(STORAGE_KEY)) || JSON.stringify(DEFAULT_PATHS);
         const paths = JSON.parse(pathsString) as string[];
         setSavedPaths(paths);
       } catch (error) {
         console.error("Error parsing saved paths:", error);
-        setSavedPaths([]);
+        setSavedPaths(DEFAULT_PATHS);
       }
     }
     fetchPaths();
   }, []);
 
-  function handleSubmit() {
+  const handleSubmit = () => {
     push(<GenerateCommitMessage gitPath={gitPath} />);
-  }
+  };
 
-  function formatPath(path: string) {
+  const formatPath = (path: string): string => {
     const parts = path.split("/");
     return parts.length > 1 ? parts.slice(-2).join("/") : path;
-  }
+  };
 
   return (
     <Form
@@ -48,47 +57,106 @@ export default function Command() {
   );
 }
 
-function GenerateCommitMessage({ gitPath }: { gitPath: string }) {
-  const [gitDiff, setGitDiff] = useState<string>("");
-
-  useEffect(() => {
-    exec(`git -C "${gitPath}" diff`, (error, stdout) => {
-      if (error) {
-        console.error(`exec error: ${error}`);
-        return;
-      }
-      setGitDiff(stdout);
-    });
-  }, [gitPath]);
-
-  const prompt = `
+// 提取提示文本為常量
+const COMMIT_PROMPT = `
 You are a Git commit message generator. Given the git diff content below, generate a concise and descriptive commit message following these rules:
 
 1. Summary line (50 chars or less):
--                Start with a capital letter
--                Use imperative mood ("Add", "Fix", "Update", not "Added", "Fixed", "Updated")
--                No period at the end
--                Be specific and meaningful
+- Start with a capital letter
+- Use imperative mood ("Add", "Fix", "Update", not "Added", "Fixed", "Updated")
+- No period at the end
+- Be specific and meaningful
 
 2. Detailed description (72 chars per line):
--                Leave one blank line after summary
--                Explain what and why vs. how
--                List major changes with bullet points
--                Include relevant issue/ticket numbers
--                Explain breaking changes if any
+- Leave one blank line after summary
+- Explain what and why vs. how
+- List major changes with bullet points
+- Include relevant issue/ticket numbers
+- Explain breaking changes if any
 
 Git diff content:
-${gitDiff}
-
-Generate:
-1. A "Commit Summary" line
-2. A "Commit Message" section with bullet points
 `;
 
-  const { data, isLoading } = useAI(prompt, {
+// 提取訊息解析邏輯為獨立函數
+const parseCommitMessage = (data: string) => {
+  const lines = data
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  let summary = "";
+  let messages: string[] = [];
+
+  // 尋找摘要
+  const explicitSummaryIndex = lines.findIndex((line) => 
+    line.toLowerCase().startsWith("commit summary:")
+  );
+
+  if (explicitSummaryIndex !== -1) {
+    summary = lines[explicitSummaryIndex].replace(/^commit summary:/i, "").trim();
+  } else {
+    summary = lines.find((line) => 
+      line && 
+      !line.startsWith("-") && 
+      !line.startsWith("•") && 
+      !line.startsWith("*") &&
+      !line.toLowerCase().includes("by:") &&
+      !line.toLowerCase().includes("commit message")
+    ) || "";
+  }
+
+  // 尋找訊息部分
+  const messageStart = lines.findIndex((line) => 
+    line.toLowerCase().includes("by:") || 
+    line.startsWith("-") || 
+    line.startsWith("•") || 
+    line.startsWith("*")
+  );
+
+  if (messageStart !== -1) {
+    messages = lines
+      .slice(messageStart)
+      .filter((line) => 
+        line.startsWith("-") || 
+        line.startsWith("•") || 
+        line.startsWith("*")
+      );
+  }
+
+  // 確保摘要存在
+  if (!summary && messages.length > 0) {
+    summary = messages[0].replace(/^[-•*]\s*/, "");
+    messages = messages.slice(1);
+  }
+
+  return { summary, messages };
+};
+
+function GenerateCommitMessage({ gitPath }: GenerateCommitMessageProps) {
+  const [gitDiff, setGitDiff] = useState<string>("");
+
+  useEffect(() => {
+    const getGitDiff = async () => {
+      try {
+        exec(`git -C "${gitPath}" diff`, (error, stdout) => {
+          if (error) {
+            console.error(`Git diff error:`, error);
+            return;
+          }
+          setGitDiff(stdout);
+        });
+      } catch (error) {
+        console.error("Failed to execute git diff:", error);
+      }
+    };
+
+    getGitDiff();
+  }, [gitPath]);
+
+  const { data, isLoading } = useAI(`${COMMIT_PROMPT}${gitDiff}\n\nGenerate:\n1. A "Commit Summary" line\n2. A "Commit Message" section with bullet points`, {
     creativity: 0,
     model: AI.Model.Anthropic_Claude_Sonnet,
-    execute: !!gitDiff,
+    execute: Boolean(gitDiff),
   });
 
   useEffect(() => {
@@ -103,52 +171,12 @@ Generate:
       markdown={
         data
           ? (() => {
-              const lines = data
-                .split("\n")
-                .map((line) => line.trim())
-                .filter(Boolean);
-              let summary = "";
-              let messages: string[] = [];
-              let additionalInfo = "";
-
-              const hasExplicitMarkers = lines.some(
-                (line) => line.startsWith("Commit Summary:") || line.startsWith("Commit Message:"),
-              );
-
-              if (hasExplicitMarkers) {
-                const summaryIndex = lines.findIndex((line) => line.startsWith("Commit Summary:"));
-                if (summaryIndex !== -1) {
-                  summary = lines[summaryIndex].replace("Commit Summary:", "").trim();
-                }
-
-                const messageStartIndex = lines.findIndex((line) => line.startsWith("Commit Message:"));
-                if (messageStartIndex !== -1) {
-                  messages = lines
-                    .slice(messageStartIndex + 1)
-                    .filter((line) => line.startsWith("- ") || line.startsWith("• ") || line.startsWith("* "));
-                }
-              } else {
-                summary =
-                  lines.find(
-                    (line) => line && !line.startsWith("-") && !line.startsWith("•") && !line.startsWith("*"),
-                  ) || "";
-                messages = lines.filter(
-                  (line) => line.startsWith("- ") || line.startsWith("• ") || line.startsWith("* "),
-                );
-              }
-
-              const lastMessageIndex = messages.length > 0 ? lines.lastIndexOf(messages[messages.length - 1]) : -1;
-              if (lastMessageIndex !== -1 && lastMessageIndex + 1 < lines.length) {
-                additionalInfo = lines.slice(lastMessageIndex + 1).join(" ");
-              }
-
+              const { summary, messages } = parseCommitMessage(data);
               return `## Commit Summary
 ${summary}
 
 ## Commit Messages
-${messages.join("\n")}
-
-${additionalInfo ? `## Additional Information\n${additionalInfo}` : ""}`;
+${messages.join("\n")}`;
             })()
           : "Loading..."
       }
